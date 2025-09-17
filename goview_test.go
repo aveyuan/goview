@@ -64,7 +64,7 @@ func ExampleNew() {
 	*/
 
 	//config
-	gv := New(Config{
+	gv := New(&Config{
 		Root:      "views",
 		Extension: ".tpl",
 		Master:    "layouts/master",

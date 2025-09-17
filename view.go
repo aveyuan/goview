@@ -17,7 +17,7 @@ import (
 var HTMLContentType = []string{"text/html; charset=utf-8"}
 
 // DefaultConfig default config
-var DefaultConfig = Config{
+var DefaultConfig = &Config{
 	Root:         "views",
 	Extension:    ".html",
 	Master:       "layouts/master",
@@ -29,7 +29,7 @@ var DefaultConfig = Config{
 
 // ViewEngine view template engine
 type ViewEngine struct {
-	config      Config
+	config      *Config
 	tplMap      map[string]*template.Template
 	tplMutex    sync.RWMutex
 	fileHandler FileHandler
@@ -59,7 +59,7 @@ type Delims struct {
 type FileHandler func(config Config, tplFile string) (content string, err error)
 
 // New new template engine
-func New(config Config) *ViewEngine {
+func New(config *Config) *ViewEngine {
 	return &ViewEngine{
 		config:      config,
 		tplMap:      make(map[string]*template.Template),
@@ -139,7 +139,7 @@ func (e *ViewEngine) executeTemplate(out io.Writer, name string, data interface{
 		tpl = template.New(name).Funcs(allFuncs).Delims(e.config.Delims.Left, e.config.Delims.Right)
 		for _, v := range tplList {
 			var data string
-			data, err = e.fileHandler(e.config, v)
+			data, err = e.fileHandler(*e.config, v)
 			if err != nil {
 				return err
 			}

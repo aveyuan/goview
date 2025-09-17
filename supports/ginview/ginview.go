@@ -23,7 +23,7 @@ type ViewRender struct {
 }
 
 // New new view engine for gin
-func New(config goview.Config) *ViewEngine {
+func New(config *goview.Config) *ViewEngine {
 	return Wrap(goview.New(config))
 }
 
@@ -68,7 +68,7 @@ func (v ViewRender) WriteContentType(w http.ResponseWriter) {
 }
 
 // NewMiddleware gin middleware for func `gintemplate.HTML()`
-func NewMiddleware(config goview.Config) gin.HandlerFunc {
+func NewMiddleware(config *goview.Config) gin.HandlerFunc {
 	return Middleware(New(config))
 }
 

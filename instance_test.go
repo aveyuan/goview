@@ -22,7 +22,7 @@ func TestDefault(t *testing.T) {
 
 func TestRender(t *testing.T) {
 
-	engine := New(Config{
+	engine := New(&Config{
 		Root:      "_examples/test",
 		Extension: ".tpl",
 		Master:    "layouts/master",

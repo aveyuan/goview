@@ -40,7 +40,7 @@ var cases = []struct {
 }
 
 func TestViewEngine_RenderWriter(t *testing.T) {
-	gv := New(Config{
+	gv := New(&Config{
 		Root:      "_examples/test",
 		Extension: ".tpl",
 		Master:    "layouts/master",
