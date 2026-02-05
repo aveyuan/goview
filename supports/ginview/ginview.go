@@ -3,7 +3,7 @@ package ginview
 import (
 	"net/http"
 
-	"github.com/foolin/goview"
+	"github.com/aveyuan/goview"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/render"
 )
@@ -75,7 +75,10 @@ func NewMiddleware(config *goview.Config) gin.HandlerFunc {
 // Middleware gin middleware wrapper
 func Middleware(e *ViewEngine) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set(templateEngineKey, e)
+		if _, ok := c.Get(templateEngineKey); !ok {
+			c.Set(templateEngineKey, e)
+		}
+		c.Next()
 	}
 }
 

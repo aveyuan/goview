@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -103,7 +102,7 @@ func (e *ViewEngine) executeTemplate(out io.Writer, name string, data interface{
 	var err error
 	var ok bool
 
-	allFuncs := make(template.FuncMap, 0)
+	allFuncs := builtinFuncMap()
 	allFuncs["include"] = func(layout string) (template.HTML, error) {
 		buf := new(bytes.Buffer)
 		err := e.executeTemplate(buf, layout, data, false)
@@ -179,14 +178,28 @@ func (e *ViewEngine) SetFileHandler(handle FileHandler) {
 // DefaultFileHandler new default file handler
 func DefaultFileHandler() FileHandler {
 	return func(config Config, tplFile string) (content string, err error) {
-		// Get the absolute path of the root template
-		path, err := filepath.Abs(config.Root + string(os.PathSeparator) + tplFile + config.Extension)
+		rootAbs, err := filepath.Abs(config.Root)
 		if err != nil {
-			return "", fmt.Errorf("ViewEngine path:%v error: %v", path, err)
+			return "", fmt.Errorf("ViewEngine root:%v error: %v", config.Root, err)
 		}
-		data, err := ioutil.ReadFile(path)
+
+		rel := filepath.Clean(tplFile + config.Extension)
+		pathAbs, err := filepath.Abs(filepath.Join(rootAbs, rel))
 		if err != nil {
-			return "", fmt.Errorf("ViewEngine render read name:%v, path:%v, error: %v", tplFile, path, err)
+			return "", fmt.Errorf("ViewEngine path:%v error: %v", pathAbs, err)
+		}
+
+		rootWithSep := rootAbs
+		if !strings.HasSuffix(rootWithSep, string(os.PathSeparator)) {
+			rootWithSep += string(os.PathSeparator)
+		}
+		if !strings.HasPrefix(pathAbs, rootWithSep) {
+			return "", fmt.Errorf("ViewEngine render read name:%v, path:%v, error: invalid template path", tplFile, pathAbs)
+		}
+
+		data, err := os.ReadFile(pathAbs)
+		if err != nil {
+			return "", fmt.Errorf("ViewEngine render read name:%v, path:%v, error: %v", tplFile, pathAbs, err)
 		}
 		return string(data), nil
 	}

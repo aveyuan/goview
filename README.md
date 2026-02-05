@@ -1,6 +1,6 @@
 # goview
 
-[![GoDoc Widget]][GoDoc] [![Travis Widget]][Travis] [![GoReportCard Widget]][GoReportCard] 
+forked https://github.com/foolin/goview
 
 Goview is a lightweight, minimalist and idiomatic template library based on golang [html/template](https://golang.org/pkg/html/template/) for building Go web application.
 
@@ -10,32 +10,23 @@ Goview is a lightweight, minimalist and idiomatic template library based on gola
 - [Features](#features)
 - [Docs](#docs)
 - [Supports](#supports)
-    - [Gin Framework](https://github.com/foolin/goview/tree/master/supports/ginview)
-    - [Iris Framework](https://github.com/foolin/goview/tree/master/supports/irisview)
-    - [Echo Framework](https://github.com/foolin/goview/tree/master/supports/echoview)
-    - [Go.Rice](https://github.com/foolin/goview/tree/master/supports/gorice)
 - [Usage](#usage)
     - [Overview](#overview)
     - [Config](#config)
     - [Include syntax](#include-syntax)
     - [Render name](#render-name)
 	- [Custom template functions](#custom-template-functions)
+	- [Built-in template functions (goview)](#built-in-template-functions-goview)
+	- [Go `html/template` built-ins (quick reference)](#go-htmltemplate-built-ins-quick-reference)
 - [Examples](#examples)
     - [Basic example](#basic-example)
     - [Gin example](#gin-example)
-    - [Iris example](#iris-example)
-    - [Iris multiple example](#iris-multiple-example)
-    - [Echo example](#echo-example)
-    - [Go-chi example](#go-chi-example)
-    - [Advance example](#advance-example)
-    - [Multiple example](#multiple-example)
-    - [go.rice example](#gorice-example)
-    - [more examples](#more-examples)
+	- [more examples](#more-examples)
 
 
 ## Install
 ```bash
-go get github.com/foolin/goview
+go get github.com/aveyuan/goview
 ```
 
 
@@ -51,19 +42,15 @@ go get github.com/foolin/goview
 * **Auto reload** - Support dynamic reload template(disable cache mode).
 * **Multiple Engine** - Support multiple templates for frontend and backend.
 * **No external dependencies** - plain ol' Go html/template.
-* **Gorice** - Support gorice for package resources.
-* **Gin/Iris/Echo/Chi** - Support gin framework, Iris framework, echo framework, go-chi framework.
+* **Gin** - Provide Gin adapter via `supports/ginview`.
 
 
 ## Docs
-See <https://www.godoc.org/github.com/foolin/goview>
+See <https://pkg.go.dev/github.com/aveyuan/goview>
 
 
 ## Supports
-- **[ginview](https://github.com/foolin/goview/tree/master/supports/ginview)** goview for gin framework
-- **[irisview](https://github.com/foolin/goview/tree/master/supports/irisview)** goview for Iris framework
-- **[echoview](https://github.com/foolin/goview/tree/master/supports/echoview)** goview for echo framework
-- **[gorice](https://github.com/foolin/goview/tree/master/supports/gorice)** goview for go.rice
+- **ginview** goview adapter for Gin framework (see `supports/ginview`)
 
 
 ## Usage
@@ -94,7 +81,7 @@ Use new instance with config:
 
 ```go
 
-    gv := goview.New(goview.Config{
+    gv := goview.New(&goview.Config{
         Root:      "views",
         Extension: ".tpl",
         Master:    "layouts/master",
@@ -124,14 +111,14 @@ Use multiple instance with config:
 
 ```go
     //============== Frontend ============== //
-    gvFrontend := goview.New(goview.Config{
+    gvFrontend := goview.New(&goview.Config{
         Root:      "views/frontend",
         Extension: ".tpl",
         Master:    "layouts/master",
         Partials:  []string{"partials/ad"},
         Funcs: template.FuncMap{
-            "sub": func(a, b int) int {
-                return a - b
+            "sub": func(a int, b int) int {
+                return a + b
             },
             "copy": func() string {
                 return time.Now().Format("2006")
@@ -145,13 +132,13 @@ Use multiple instance with config:
     gvFrontend.Render(writer, http.StatusOK, "index", goview.M{})
     
     //============== Backend ============== //
-    gvBackend := goview.New(goview.Config{
+    gvBackend := goview.New(&goview.Config{
         Root:      "views/backend",
         Extension: ".tpl",
         Master:    "layouts/master",
         Partials:  []string{"partials/ad"},
         Funcs: template.FuncMap{
-            "sub": func(a, b int) int {
+            "sub": func(a int, b int) int {
                 return a - b
             },
             "copy": func() string {
@@ -256,679 +243,234 @@ http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 {{ call $.reverse "route-name" }}
 ```
 
+### Built-in template functions (goview)
+
+goview provides a set of built-in template functions globally.
+
+- These functions are available in all templates without extra configuration.
+- `Config.Funcs` can override any built-in function with the same name.
+
+#### default
+
+`default(d, v) any`
+
+Returns `d` when `v` is considered empty.
+
+Empty means:
+
+- `nil`
+- `false`
+- numeric `0`
+- empty string
+- empty slice/map/array
+- zero-value struct
+
+Example:
+
+```go
+{{ default "N/A" .Name }}
+```
+
+#### list
+
+`list(v1, v2, ...) []any`
+
+Example:
+
+```go
+{{ index (list 1 2 3) 1 }}
+```
+
+#### dict
+
+`dict(k1, v1, k2, v2, ...) (map[string]any, error)`
+
+Keys must be strings and the argument count must be even.
+
+Example:
+
+```go
+{{ $m := dict "a" 1 "b" 2 }}
+{{ index $m "a" }}
+```
+
+#### urlquery
+
+`urlquery(v) template.URL`
+
+URL-escapes the value for use in query strings.
+
+Example:
+
+```go
+<a href="/search?q={{ urlquery .Keyword }}">search</a>
+```
+
+#### date
+
+`date(t, layout) (string, error)`
+
+Supported input types: `time.Time`, `*time.Time`, `int64`, `int`.
+
+Example:
+
+```go
+{{ date .CreatedAt "2006-01-02 15:04:05" }}
+```
+
+#### json
+
+`json(v) (template.JS, error)`
+
+Marshals to JSON using `encoding/json`.
+
+Example:
+
+```go
+<script>window.__DATA__ = {{ json . }}</script>
+```
+
+#### escape
+
+`escape(v) template.HTML`
+
+HTML-escapes the value (uses `template.HTMLEscapeString`).
+
+Example:
+
+```go
+{{ escape .UnsafeText }}
+```
+
+#### safeHTML
+
+`safeHTML(v) template.HTML`
+
+Marks the value as trusted HTML.
+
+Use this only when you know the content is safe. Do NOT use it directly on user input.
+
+Example:
+
+```go
+{{ safeHTML .TrustedHTML }}
+```
+
+#### include
+
+`include(name) (template.HTML, error)`
+
+Renders another template and returns the result.
+
+Example:
+
+```go
+{{ include "layouts/footer" }}
+```
+
+### Go `html/template` built-ins (quick reference)
+
+goview is based on Go `html/template`, so the standard template syntax and the built-in functions are available.
+
+#### Syntax essentials
+
+- **Action**: `{{ ... }}`
+- **Pipeline**: `{{ .Title | printf "%q" }}`
+- **If/Else**:
+
+```go
+{{ if .OK }}yes{{ else }}no{{ end }}
+```
+
+- **Range**:
+
+```go
+{{ range .Items }}{{ . }}{{ end }}
+```
+
+- **With**:
+
+```go
+{{ with .User }}{{ .Name }}{{ end }}
+```
+
+- **Template / define**:
+
+```go
+{{ define "content" }}...{{ end }}
+{{ template "content" . }}
+```
+
+#### Common built-in functions
+
+- **Logic/compare**: `and`, `or`, `not`, `eq`, `ne`, `lt`, `le`, `gt`, `ge`
+- **Length**: `len`
+- **Index**: `index`
+- **Print**: `print`, `printf`, `println`
+- **Call function**: `call`
+
+See the official docs for the full list and details:
+
+- https://pkg.go.dev/html/template
+- https://pkg.go.dev/text/template
+
 
 
 ## Examples
 
-See [_examples/](https://github.com/foolin/goview/blob/master/_examples/) for a variety of examples.
+See `_examples/` in this repository.
 
 
 ### Basic example
-```go
 
+```go
 package main
 
 import (
 	"fmt"
-	"github.com/foolin/goview"
 	"net/http"
+
+	"github.com/aveyuan/goview"
 )
 
 func main() {
-
-	//render index use `index` without `.html` extension, that will render with master layout.
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "index", goview.M{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
+		err := goview.Render(w, http.StatusOK, "index", goview.M{"title": "Index title!"})
 		if err != nil {
 			fmt.Fprintf(w, "Render index error: %v!", err)
-		}
-
-	})
-
-	//render page use `page.tpl` with '.html' will only file template without master layout.
-	http.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "page.html", goview.M{"title": "Page file title!!"})
-		if err != nil {
-			fmt.Fprintf(w, "Render page.html error: %v!", err)
 		}
 	})
 
 	fmt.Println("Listening and serving HTTP on :9090")
-	http.ListenAndServe(":9090", nil)
-
+	_ = http.ListenAndServe(":9090", nil)
 }
-
 ```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-    
-
-See in "examples/basic" folder
-```
-
-[Basic example](https://github.com/foolin/goview/tree/master/_examples/basic)
-
 
 ### Gin example
 
-```bash
-go get github.com/foolin/goview/supports/ginview
-```
-
 ```go
-
 package main
 
 import (
-	"github.com/foolin/goview/supports/ginview"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/aveyuan/goview/supports/ginview"
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
 	router := gin.Default()
-
-	//new template engine
 	router.HTMLRender = ginview.Default()
 
 	router.GET("/", func(ctx *gin.Context) {
-		//render with master
-		ctx.HTML(http.StatusOK, "index", gin.H{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
+		ctx.HTML(http.StatusOK, "index", gin.H{"title": "Index title!"})
 	})
 
-	router.GET("/page", func(ctx *gin.Context) {
-		//render only file, must full name with extension
-		ctx.HTML(http.StatusOK, "page.html", gin.H{"title": "Page file title!!"})
-	})
-
-	router.Run(":9090")
-}
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-    
-
-See in "examples/basic" folder
-```
-
-[Gin example](https://github.com/foolin/goview/tree/master/_examples/gin)
-
-### Iris example
-
-```bash
-$ go get github.com/foolin/goview/supports/irisview
-```
-
-```go
-package main
-
-import (
-	"github.com/foolin/goview/supports/irisview"
-	"github.com/kataras/iris/v12"
-)
-
-func main() {
-	app := iris.New()
-
-	// Register the goview template engine.
-	app.RegisterView(irisview.Default())
-
-	app.Get("/", func(ctx iris.Context) {
-		// Render with master.
-		ctx.View("index", iris.Map{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
-	})
-
-	app.Get("/page", func(ctx iris.Context) {
-		// Render only file, must full name with extension.
-		ctx.View("page.html", iris.Map{"title": "Page file title!!"})
-	})
-
-	app.Listen(":9090")
+	_ = router.Run(":9090")
 }
 ```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-    
-
-See in "examples/iris" folder
-```
-
-[Iris example](https://github.com/foolin/goview/tree/master/_examples/iris)
-
-
-### Iris multiple example
-
-```go
-package main
-
-import (
-	"html/template"
-	"time"
-
-	"github.com/foolin/goview"
-	"github.com/foolin/goview/supports/irisview"
-	"github.com/kataras/iris/v12"
-)
-
-func main() {
-	app := iris.New()
-
-	// Register a new template engine.
-	app.RegisterView(irisview.New(goview.Config{
-		Root:      "views/frontend",
-		Extension: ".html",
-		Master:    "layouts/master",
-		Partials:  []string{"partials/ad"},
-		Funcs: template.FuncMap{
-			"copy": func() string {
-				return time.Now().Format("2006")
-			},
-		},
-		DisableCache: true,
-	}))
-
-	app.Get("/", func(ctx iris.Context) {
-		ctx.View("index", iris.Map{
-			"title": "Frontend title!",
-		})
-	})
-
-	//=========== Backend ===========//
-
-	// Assign a new template middleware.
-	mw := irisview.NewMiddleware(goview.Config{
-		Root:      "views/backend",
-		Extension: ".html",
-		Master:    "layouts/master",
-		Partials:  []string{},
-		Funcs: template.FuncMap{
-			"copy": func() string {
-				return time.Now().Format("2006")
-			},
-		},
-		DisableCache: true,
-	})
-
-	backendGroup := app.Party("/admin", mw)
-
-	backendGroup.Get("/", func(ctx iris.Context) {
-		// Use the ctx.View as you used to. Zero changes to your codebase,
-		// even if you use multiple templates.
-		ctx.View("index", iris.Map{
-			"title": "Backend title!",
-		})
-	})
-
-	app.Listen(":9090")
-}
-```
-
-Project structure:
-```go
-|-- app/views/
-    |-- fontend/
-        |--- index.html
-        |-- layouts/
-            |--- footer.html
-            |--- head.html
-            |--- master.html
-        |-- partials/
-     	   |--- ad.html
-    |-- backend/
-        |--- index.html
-        |-- layouts/
-            |--- footer.html
-            |--- head.html
-            |--- master.html
-        
-See in "examples/iris-multiple" folder
-```
-
-[Iris multiple example](https://github.com/foolin/goview/tree/master/_examples/iris-multiple)
-
-### Echo example
-
-Echo <=v3 version:
-```bash
-go get github.com/foolin/goview/supports/echoview
-```
-
-Echo v4 version:
-
-```bash
-go get github.com/foolin/goview/supports/echoview-v4
-```
-
-
-```go
-
-package main
-
-import (
-	"github.com/foolin/goview/supports/echoview"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"net/http"
-)
-
-func main() {
-
-	// Echo instance
-	e := echo.New()
-
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	//Set Renderer
-	e.Renderer = echoview.Default()
-
-	// Routes
-	e.GET("/", func(c echo.Context) error {
-		//render with master
-		return c.Render(http.StatusOK, "index", echo.Map{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
-	})
-
-	e.GET("/page", func(c echo.Context) error {
-		//render only file, must full name with extension
-		return c.Render(http.StatusOK, "page.html", echo.Map{"title": "Page file title!!"})
-	})
-
-	// Start server
-	e.Logger.Fatal(e.Start(":9090"))
-}
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-    
-
-See in "examples/basic" folder
-```
-
-[Echo example](https://github.com/foolin/goview/tree/master/_examples/echo)
-[Echo v4 example](https://github.com/foolin/goview/tree/master/_examples/echo-v4)
-
-
-### Go-chi example
-```go
-
-package main
-
-import (
-	"fmt"
-	"github.com/foolin/goview"
-	"github.com/go-chi/chi"
-	"net/http"
-)
-
-func main() {
-
-	r := chi.NewRouter()
-
-	//render index use `index` without `.html` extension, that will render with master layout.
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "index", goview.M{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
-		if err != nil {
-			fmt.Fprintf(w, "Render index error: %v!", err)
-		}
-	})
-
-	//render page use `page.tpl` with '.html' will only file template without master layout.
-	r.Get("/page", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "page.html", goview.M{"title": "Page file title!!"})
-		if err != nil {
-			fmt.Fprintf(w, "Render page.html error: %v!", err)
-		}
-	})
-
-	fmt.Println("Listening and serving HTTP on :9090")
-	http.ListenAndServe(":9090", r)
-
-}
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-    
-
-See in "examples/basic" folder
-```
-
-[Chi example](https://github.com/foolin/goview/tree/master/_examples/go-chi)
-
-
-
-### Advance example
-```go
-
-package main
-
-import (
-	"fmt"
-	"github.com/foolin/goview"
-	"html/template"
-	"net/http"
-	"time"
-)
-
-func main() {
-
-	gv := goview.New(goview.Config{
-		Root:      "views",
-		Extension: ".tpl",
-		Master:    "layouts/master",
-		Partials:  []string{"partials/ad"},
-		Funcs: template.FuncMap{
-			"sub": func(a, b int) int {
-				return a - b
-			},
-			"copy": func() string {
-				return time.Now().Format("2006")
-			},
-		},
-		DisableCache: true,
-	})
-
-	//Set new instance
-	goview.Use(gv)
-
-	//render index use `index` without `.html` extension, that will render with master layout.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "index", goview.M{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
-		if err != nil {
-			fmt.Fprintf(w, "Render index error: %v!", err)
-		}
-
-	})
-
-	//render page use `page.tpl` with '.html' will only file template without master layout.
-	http.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "page.tpl", goview.M{"title": "Page file title!!"})
-		if err != nil {
-			fmt.Fprintf(w, "Render page.html error: %v!", err)
-		}
-	})
-
-	fmt.Println("Listening and serving HTTP on :9090")
-	http.ListenAndServe(":9090", nil)
-}
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.tpl          
-    |--- page.tpl
-    |-- layouts/
-        |--- footer.tpl
-        |--- head.tpl
-        |--- master.tpl
-    |-- partials/
-        |--- ad.tpl
-    
-
-See in "examples/advance" folder
-```
-
-[Advance example](https://github.com/foolin/goview/tree/master/_examples/advance)
-
-### Multiple example
-```go
-
-package main
-
-import (
-	"html/template"
-	"net/http"
-	"time"
-
-	"github.com/foolin/goview"
-	"github.com/gin-gonic/gin"
-)
-
-func main() {
-	router := gin.Default()
-
-	//new template engine
-	router.HTMLRender = gintemplate.New(gintemplate.TemplateConfig{
-		Root:      "views/fontend",
-		Extension: ".html",
-		Master:    "layouts/master",
-		Partials:  []string{"partials/ad"},
-		Funcs: template.FuncMap{
-			"copy": func() string {
-				return time.Now().Format("2006")
-			},
-		},
-		DisableCache: true,
-	})
-
-	router.GET("/", func(ctx *gin.Context) {
-		// `HTML()` is a helper func to deal with multiple TemplateEngine's.
-		// It detects the suitable TemplateEngine for each path automatically.
-		gintemplate.HTML(ctx, http.StatusOK, "index", gin.H{
-			"title": "Fontend title!",
-		})
-	})
-
-	//=========== Backend ===========//
-
-	//new middleware
-	mw := gintemplate.NewMiddleware(gintemplate.TemplateConfig{
-		Root:      "views/backend",
-		Extension: ".html",
-		Master:    "layouts/master",
-		Partials:  []string{},
-		Funcs: template.FuncMap{
-			"copy": func() string {
-				return time.Now().Format("2006")
-			},
-		},
-		DisableCache: true,
-	})
-
-	// You should use helper func `Middleware()` to set the supplied
-	// TemplateEngine and make `HTML()` work validly.
-	backendGroup := router.Group("/admin", mw)
-
-	backendGroup.GET("/", func(ctx *gin.Context) {
-		// With the middleware, `HTML()` can detect the valid TemplateEngine.
-		gintemplate.HTML(ctx, http.StatusOK, "index", gin.H{
-			"title": "Backend title!",
-		})
-	})
-
-	router.Run(":9090")
-}
-
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |-- fontend/
-        |--- index.html
-        |-- layouts/
-            |--- footer.html
-            |--- head.html
-            |--- master.html
-        |-- partials/
-     	   |--- ad.html
-    |-- backend/
-        |--- index.html
-        |-- layouts/
-            |--- footer.html
-            |--- head.html
-            |--- master.html
-        
-See in "examples/multiple" folder
-```
-
-[Multiple example](https://github.com/foolin/goview/tree/master/_examples/multiple)
-
-
-### go.rice example
-
-```bash
-go get github.com/foolin/goview/supports/gorice
-```
-
-```go
-
-package main
-
-import (
-	"fmt"
-	"github.com/GeertJohan/go.rice"
-	"github.com/foolin/goview"
-	"github.com/foolin/goview/supports/gorice"
-	"net/http"
-)
-
-func main() {
-
-	//static
-	staticBox := rice.MustFindBox("static")
-	staticFileServer := http.StripPrefix("/static/", http.FileServer(staticBox.HTTPBox()))
-	http.Handle("/static/", staticFileServer)
-
-	//new view engine
-	gv := gorice.New(rice.MustFindBox("views"))
-	//set engine for default instance
-	goview.Use(gv)
-
-	//render index use `index` without `.html` extension, that will render with master layout.
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "index", goview.M{
-			"title": "Index title!",
-			"add": func(a int, b int) int {
-				return a + b
-			},
-		})
-		if err != nil {
-			fmt.Fprintf(w, "Render index error: %v!", err)
-		}
-
-	})
-
-	//render page use `page.tpl` with '.html' will only file template without master layout.
-	http.HandleFunc("/page", func(w http.ResponseWriter, r *http.Request) {
-		err := goview.Render(w, http.StatusOK, "page.html", goview.M{"title": "Page file title!!"})
-		if err != nil {
-			fmt.Fprintf(w, "Render page.html error: %v!", err)
-		}
-	})
-
-	fmt.Println("Listening and serving HTTP on :9090")
-	http.ListenAndServe(":9090", nil)
-}
-
-```
-
-Project structure:
-```go
-|-- app/views/
-    |--- index.html          
-    |--- page.html
-    |-- layouts/
-        |--- footer.html
-        |--- master.html
-|-- app/static/  
-    |-- css/
-        |--- bootstrap.css   	
-    |-- img/
-        |--- gopher.png
-
-See in "examples/gorice" folder
-```
-
-[gorice example](https://github.com/foolin/goview/tree/master/_examples/gorice)
 
 ### More examples
 
-See [_examples/](https://github.com/foolin/goview/blob/master/_examples/) for a variety of examples.
-
-
-[GoDoc]: https://godoc.org/github.com/foolin/goview
-[GoDoc Widget]: https://godoc.org/github.com/foolin/goview?status.svg
-[Travis]: https://travis-ci.org/foolin/goview
-[Travis Widget]: https://travis-ci.org/foolin/goview.svg?branch=master
-[GoReportCard]: https://goreportcard.com/report/github.com/foolin/goview
-[GoReportCard Widget]: https://goreportcard.com/badge/github.com/foolin/goview
-[GoCover]: https://goreportcard.com/report/github.com/foolin/goview
-[GoCover Widget]: https://goreportcard.com/badge/github.com/foolin/goview
-
-
-### Todo
- [ ] Add Partials support directory or glob
- [ ] Add functions support.
+See `_examples/` in this repository.
  

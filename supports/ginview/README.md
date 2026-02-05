@@ -1,16 +1,11 @@
 # GinView
-
-[![GoDoc Widget]][GoDoc] 
-
 goview support for gin template
 
 ## Install
 ```bash
+go get github.com/aveyuan/goview
 
-go get -u github.com/foolin/goview
-
-go get -u github.com/foolin/goview/supports/ginview
-
+go get github.com/aveyuan/goview/supports/ginview
 ```
 
 ### Example
@@ -20,7 +15,7 @@ go get -u github.com/foolin/goview/supports/ginview
 package main
 
 import (
-	"github.com/foolin/goview/supports/ginview"
+	"github.com/aveyuan/goview/supports/ginview"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -64,11 +59,8 @@ Project structure:
 See in "examples/basic" folder
 ```
 
-[Gin example](https://github.com/foolin/goview/tree/master/_examples/gin)
+[Gin example](_examples/)
            
 ## More examples
 
-See [_examples/](https://github.com/foolin/goview/blob/master/_examples/) for a variety of examples.
-
-[GoDoc]: https://godoc.org/github.com/foolin/goview/supports/ginview
-[GoDoc Widget]: https://godoc.org/github.com/foolin/goview/supports/ginview?status.svg
+See `_examples/` in this repository.
