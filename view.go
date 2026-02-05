@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 // HTMLContentType const templateEngineKey = "httpx_templateEngine"
@@ -28,10 +29,11 @@ var DefaultConfig = &Config{
 
 // ViewEngine view template engine
 type ViewEngine struct {
-	config      *Config
-	tplMap      map[string]*template.Template
-	tplMutex    sync.RWMutex
-	fileHandler FileHandler
+	config       *Config
+	tplMap       map[string]*template.Template
+	tplMutex     sync.RWMutex
+	fileHandler  FileHandler
+	disableCache atomic.Bool
 }
 
 // Config configuration options
@@ -59,12 +61,28 @@ type FileHandler func(config Config, tplFile string) (content string, err error)
 
 // New new template engine
 func New(config *Config) *ViewEngine {
-	return &ViewEngine{
+	if config == nil {
+		config = DefaultConfig
+	}
+
+	e := &ViewEngine{
 		config:      config,
 		tplMap:      make(map[string]*template.Template),
 		tplMutex:    sync.RWMutex{},
 		fileHandler: DefaultFileHandler(),
 	}
+	e.disableCache.Store(config.DisableCache)
+	return e
+}
+
+// SetDisableCache updates DisableCache flag safely at runtime.
+func (e *ViewEngine) SetDisableCache(disable bool) {
+	e.disableCache.Store(disable)
+}
+
+// DisableCache returns current DisableCache flag.
+func (e *ViewEngine) DisableCache() bool {
+	return e.disableCache.Load()
 }
 
 // Default new default template engine
@@ -123,7 +141,7 @@ func (e *ViewEngine) executeTemplate(out io.Writer, name string, data interface{
 		exeName = e.config.Master
 	}
 
-	if !ok || e.config.DisableCache {
+	if !ok || e.DisableCache() {
 		tplList := make([]string, 0)
 		if useMaster {
 			//render()

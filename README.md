@@ -173,6 +173,23 @@ goview.Config{
 }
 ```
 
+`DisableCache` can be changed safely at runtime via the `ViewEngine` methods.
+
+- Do NOT mutate `Config.DisableCache` directly while the engine is in use.
+- Use `SetDisableCache` instead.
+
+```go
+gv := goview.New(&goview.Config{DisableCache: false})
+
+// enable auto reload (disable template cache)
+gv.SetDisableCache(true)
+
+// disable auto reload (enable template cache)
+gv.SetDisableCache(false)
+
+_ = gv.DisableCache()
+```
+
 ### Include syntax
 
 ```go
