@@ -1,6 +1,9 @@
 package ginview
 
 import (
+	"fmt"
+	"html"
+	"io"
 	"net/http"
 
 	"github.com/aveyuan/goview"
@@ -56,7 +59,32 @@ func (e *ViewEngine) HTML(ctx *gin.Context, code int, name string, data interfac
 
 // Render (YAML) marshals the given interface object and writes data with custom ContentType.
 func (v ViewRender) Render(w http.ResponseWriter) error {
-	return v.Engine.RenderWriter(w, v.Name, v.Data)
+	err := v.Engine.RenderWriter(w, v.Name, v.Data)
+	if err == nil {
+		return nil
+	}
+
+	fmt.Fprintf(gin.DefaultErrorWriter, "[goview] render %q error: %v\n", v.Name, err)
+
+	if rw, ok := w.(gin.ResponseWriter); ok {
+		if !rw.Written() {
+			if rw.Status() < http.StatusBadRequest {
+				rw.WriteHeader(http.StatusInternalServerError)
+			}
+		}
+	}
+
+	header := w.Header()
+	if val := header["Content-Type"]; len(val) == 0 {
+		header["Content-Type"] = goview.HTMLContentType
+	}
+
+	escapedErr := html.EscapeString(err.Error())
+	_, _ = io.WriteString(w, "<!doctype html><html><head><meta charset=\"utf-8\"><title>Render Error</title></head><body><h1>Render Error</h1><pre>")
+	_, _ = io.WriteString(w, escapedErr)
+	_, _ = io.WriteString(w, "</pre></body></html>")
+
+	return err
 }
 
 // WriteContentType write html content type
