@@ -54,6 +54,7 @@ func (e *ViewEngine) Instance(name string, data interface{}) render.Render {
 // HTML render html
 func (e *ViewEngine) HTML(ctx *gin.Context, code int, name string, data interface{}) {
 	instance := e.Instance(name, data)
+	ctx.Header("Content-Type", "text/html; charset=utf-8")
 	ctx.Render(code, instance)
 }
 
@@ -120,5 +121,6 @@ func HTML(ctx *gin.Context, code int, name string, data interface{}) {
 			return
 		}
 	}
+	ctx.Header("Content-Type", "text/html; charset=utf-8")
 	ctx.HTML(code, name, data)
 }
